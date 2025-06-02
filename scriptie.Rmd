@@ -1,0 +1,325 @@
+---
+title: "Analyse Scriptie"
+author: "Marleen"
+date: "2025-05-13"
+output: html_document
+---
+
+# Packages
+
+```{r Packages}
+#install.packackes("plm")
+#install.packages("utils")
+#install.packages(dplyr)
+#install.packages("tidyverse")
+#install.packages("ggplot2")
+#install.packages("gganimate")
+#install.packages("lmtest")
+#install.packages("car")
+#install.packages("tseries")
+library(plm)
+library(utils)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(gganimate)
+library(lmtest)
+library(car)
+library(tseries)
+```
+
+# Data
+
+```{r Datasets, message=FALSE, warning=FALSE}
+
+V_Dem_dataset <- read.csv(
+                  url("https://raw.githubusercontent.com/marleen101/Scriptie/main/Data/CSV/V_Dem_data.csv"),
+                  header = TRUE,
+                  encoding = "UTF-8",
+                  skip = 0
+                )
+Cirights_dataset <- read.csv(
+                  url("https://raw.githubusercontent.com/marleen101/Scriptie/main/Data/CSV/cirights_v3_12_10_24_20.csv"),
+                  header = TRUE,
+                  encoding = "UTF-8",
+                  skip = 0
+                )
+
+
+Emdat_dataset <- read.csv(
+                  url("https://raw.githubusercontent.com/marleen101/Scriptie/main/Data/CSV/emdat-country-profiles_2025_01_20.csv"),
+                  header = TRUE,
+                  encoding = "UTF-8",
+                  skip = 0
+                )
+
+
+Pop<- read.csv(
+          url("https://raw.githubusercontent.com/marleen101/Scriptie/main/Data/CSV/Populatie.csv"),
+          header = TRUE,
+          encoding = "UTF-8",
+          skip = 0
+)
+
+Populatie <- Pop %>%
+  pivot_longer(
+    cols = 5:22,
+    names_to = "Year",
+    values_to = "Populatie")%>%
+  mutate(Year = substring(Year,2,5))
+
+
+
+
+GDP <- read.csv(
+          url("https://raw.githubusercontent.com/marleen101/Scriptie/main/Data/CSV/GDP.csv"),
+          header = TRUE,
+          encoding = "UTF-8",
+          skip = 0
+)
+
+BBP <- GDP %>%
+  pivot_longer(
+    cols = 5:22,
+    names_to = "Year",
+    values_to = "BBP")%>%
+  mutate(Year = substring(Year,2,5))
+
+BBP$Populatie <- Populatie$Populatie
+
+BBP<- BBP %>% mutate(BBP_Perhoofd = BBP/Populatie)
+
+
+Hulp <- read.csv(
+          url("https://raw.githubusercontent.com/marleen101/Scriptie/main/Data/CSV/foreign-aid-received-net.csv"),
+          header = TRUE,
+          encoding = "UTF-8",
+          skip = 0
+)
+
+```
+
+De datasets zijn gedownload vanaf de Github repository. Nu moet de relevante informatie worden geselecteerd voor ieder land (China, India en Indonesië). Wanneer alle datasets klaar zijn, kan de analyse starten.
+
+## China
+
+```{r China, message=FALSE, warning=FALSE}
+#V Dem dataset voor China
+dem_china <- V_Dem_dataset[V_Dem_dataset$country_name == "China",]
+dem_china_2005_2022 <- dem_china[c(217:234),c("v2xpe_exlgender", "v2xpe_exlecon","v2x_corr","v2x_regime", "v2x_accountability", "v2x_veracc")]
+
+
+#Cirights dataset voor China
+cirights_china <- Cirights_dataset[Cirights_dataset$country == "China",]
+cirights_china_2005_2022 <- cirights_china[c(25:42),c("human_rights","physint_sum", "repression_sum","civpol_sum","workerrights_practices_sum", "workerrights_laws_sum" , "kill", "disap", "tort", "polpris","speech","rel_free", "dommov", "formov", "assn", "elecsd", "wopol","wosoc_p", "wecon", "trafficking_l","ngo_freedom")]
+
+
+#Em-Dat dataset voor China
+emdat_china <- Emdat_dataset[Emdat_dataset$Country == "China",]
+emdat_china_2005_2022 <- emdat_china %>%slice(52:202)%>% filter(Disaster.Type == "Flood")%>%
+  group_by(Country, Year) %>%
+  summarise(
+    Total_Events = sum(Total.Events, na.rm = TRUE),
+    Total_Affected = sum(Total.Affected, na.rm = TRUE),
+    Total_Deaths = sum(Total.Deaths, na.rm = TRUE),
+    Total_Damage_Original = sum(Total.Damage..USD..original., na.rm = TRUE),
+    Total_Damage_Adjusted = sum(Total.Damage..USD..adjusted., na.rm = TRUE),
+    .groups = "drop"
+  )
+
+
+
+#BBP van China
+BBP_china <- BBP[c(1:18),c(6:8)]
+
+
+#Gekregen hulp China
+Hulp_China <- Hulp[Hulp$Entity =="China",]
+Hulp_China_2005_2022 <- Hulp_China[c(27:44),]
+
+
+China <- bind_cols(emdat_china_2005_2022, cirights_china_2005_2022,dem_china_2005_2022,BBP_china,.name_repair = "unique")
+China$Hulp <- Hulp_China_2005_2022$Official.development.assistance..ODA..by.recipient..Official.donors.
+
+```
+
+## India
+
+```{r}
+#V Dem dataset voor India
+dem_india <- V_Dem_dataset[V_Dem_dataset$country_name == "India",]
+dem_india_2005_2022 <- dem_india[c(217:234),c("v2xpe_exlgender", "v2xpe_exlecon","v2x_corr","v2x_regime", "v2x_accountability", "v2x_veracc")]
+
+
+#Cirights dataset voor India
+cirights_india <- Cirights_dataset[Cirights_dataset$country == "India",]
+cirights_india_2005_2022 <- cirights_india[c(25:42),c("human_rights","physint_sum", "repression_sum","civpol_sum","workerrights_practices_sum", "workerrights_laws_sum" , "kill", "disap", "tort", "polpris","speech","rel_free", "dommov", "formov", "assn", "elecsd", "wopol","wosoc_p", "wecon", "trafficking_l", "ngo_freedom")]
+
+
+#Em-Dat dataset voor India
+emdat_india <- Emdat_dataset[Emdat_dataset$Country == "India",]
+emdat_india_2005_2022 <- emdat_india %>%slice(36:159)%>% filter(Disaster.Type == "Flood")%>%
+  group_by(Country, Year) %>%
+  summarise(
+    Total_Events = sum(Total.Events, na.rm = TRUE),
+    Total_Affected = sum(Total.Affected, na.rm = TRUE),
+    Total_Deaths = sum(Total.Deaths, na.rm = TRUE),
+    Total_Damage_Original = sum(Total.Damage..USD..original., na.rm = TRUE),
+    Total_Damage_Adjusted = sum(Total.Damage..USD..adjusted., na.rm = TRUE),
+    .groups = "drop"
+  )
+
+#BBP van India
+BBP_india <- BBP[c(19:36),c(6:8)]
+
+
+#Gekregen hulp India
+Hulp_India <- Hulp[Hulp$Entity =="India",]
+Hulp_India_2005_2022 <- Hulp_India[c(27:44),]
+
+
+India <- bind_cols(emdat_india_2005_2022, cirights_india_2005_2022,dem_india_2005_2022,BBP_india,.name_repair = "unique")
+India$Hulp <- Hulp_India_2005_2022$Official.development.assistance..ODA..by.recipient..Official.donors.
+
+```
+
+## Indonesië
+
+```{r}
+#V Dem dataset voor Indonesie
+dem_indonesie <- V_Dem_dataset[V_Dem_dataset$country_name == "Indonesia",]
+dem_indonesie_2005_2022 <- dem_indonesie[c(206:223),c("v2xpe_exlgender", "v2xpe_exlecon","v2x_corr","v2x_regime", "v2x_accountability", "v2x_veracc")]
+
+
+#Cirights dataset voor Indonesie
+cirights_indonesie <- Cirights_dataset[Cirights_dataset$country == "Indonesia",]
+cirights_indonesie_2005_2022 <- cirights_indonesie[c(25:42),c("human_rights","physint_sum", "repression_sum","civpol_sum","workerrights_practices_sum", "workerrights_laws_sum" , "kill", "disap", "tort", "polpris","speech","rel_free", "dommov", "formov", "assn", "elecsd", "wopol","wosoc_p", "wecon", "trafficking_l", "ngo_freedom")]
+
+
+#Em-Dat dataset voor Indonesie
+emdat_indonesie <- Emdat_dataset[Emdat_dataset$Country == "Indonesia",]
+emdat_indonesie_2005_2022 <- emdat_indonesie %>%slice(30:133)%>% filter(Disaster.Type == "Flood")%>%
+  group_by(Country, Year) %>%
+  summarise(
+    Total_Events = sum(Total.Events, na.rm = TRUE),
+    Total_Affected = sum(Total.Affected, na.rm = TRUE),
+    Total_Deaths = sum(Total.Deaths, na.rm = TRUE),
+    Total_Damage_Original = sum(Total.Damage..USD..original., na.rm = TRUE),
+    Total_Damage_Adjusted = sum(Total.Damage..USD..adjusted., na.rm = TRUE),
+    .groups = "drop"
+  )
+
+#BBP van Indonesie
+BBP_indonesie <- BBP[c(37:54),c(6:8)]
+
+
+#Gekregen hulp Indonesie
+Hulp_Indonesie <- Hulp[Hulp$Entity =="Indonesia",]
+Hulp_Indonesie_2005_2022 <- Hulp_Indonesie[c(27:44),]
+
+
+Indonesie <- bind_cols(emdat_indonesie_2005_2022, cirights_indonesie_2005_2022,dem_indonesie_2005_2022,BBP_indonesie,.name_repair = "unique")
+Indonesie$Hulp <- Hulp_Indonesie_2005_2022$Official.development.assistance..ODA..by.recipient..Official.donors.
+
+```
+
+# Analyse
+
+## Panelregressie
+```{r}
+#Alle datasets van de landen bij elkaar
+Data <- bind_rows(China, India, Indonesie)
+
+Data$Hulp_pop <- Data$Hulp/Data$Populatie
+
+quantile(Data$Hulp_pop)
+Data$Hulp_cat <- cut(Data$Hulp_pop,
+                          breaks = c(-Inf,.78, 1.66, 5.83, Inf),
+                          labels = c("Zeer laag","Laag", "Hoog", "Zeer hoog"))
+
+
+Data$v2x_corr_100 <- Data$v2x_corr*100
+Data$v2x_accountability_100 <- Data$v2x_accountability*100
+
+
+
+# Panel regressie
+Panel_hetzelfdejaar <- plm(data = Data, human_rights ~ Total_Events*Country + v2x_corr_100 + v2x_accountability_100 + Hulp_cat, index = c("Country","Year"), model = "within")
+summary(Panel_hetzelfdejaar)
+
+Panel_eenjaar <- plm(data = Data, human_rights ~ lag(Total_Events, 1)*Country + v2x_corr_100 + v2x_accountability_100 + Hulp_cat, index = c("Country","Year"), model = "within")
+summary(Panel_eenjaar)
+coeftest(Panel_eenjaar, vcov = plm::vcovHC(Panel_eenjaar, type = "HC1", cluster = "group"))#wegens significant resultaat van de seriële correlatie
+
+Panel_tweejaar <- plm(data = Data, human_rights ~ lag(Total_Events, 2)*Country + v2x_corr_100 + v2x_accountability_100 + Hulp_cat, index = c("Country","Year"), model = "within")
+summary(Panel_tweejaar)
+
+```
+
+## Assumtpies
+
+```{r}
+#Multicolloneariteit
+vif(lm(data = Data, human_rights ~ Total_Events*Country + v2x_corr_100 + v2x_accountability_100 + Hulp_cat ))
+
+#Heteroskedacitieit
+bptest(data = Data, human_rights ~ Total_Events*Country + v2x_corr_100 + v2x_accountability_100 + Hulp_cat, studentize=F)
+
+#Breusch-pagan LM test, 
+pcdtest(Panel_hetzelfdejaar, test= c("cd"))
+pcdtest(Panel_eenjaar, test= c("cd"))
+pcdtest(Panel_tweejaar, test= c("cd"))
+
+#serial correlations
+pbgtest(Panel_hetzelfdejaar)
+pbgtest(Panel_eenjaar)#significant
+pbgtest(Panel_tweejaar)
+
+
+
+```
+
+# Visualisatie 
+
+```{r Visualisaties}
+ggplot(data= Data, aes(x=Year))+
+  geom_line(aes(y=human_rights, color= "Mensenrechtenindex"), size =.75)+  
+  geom_line(aes(y=Total_Events, color="Overstromingen"), size = .75)+
+  facet_wrap(~Country)+
+  scale_color_manual(values = c("Overstromingen" = "royalblue", "Mensenrechtenindex" = "tomato2" )) +
+  labs(title = "Figuur 1", subtitle="Hoeveelheid overstromingen en mensenrechtenindex per land per jaar",color = "Legenda", y ="Hoeveelheid", x="Jaar", caption = "De mensenrechtenindex is op een schaal van 0-100, waarbij een hoge score 
+       betekend dat de mensenrechten in het land goed worden gewaarborgd")+ 
+  theme(plot.caption = element_text(size=7), plot.caption.position = "plot")
+
+
+#Animatie plot
+animatie <- ggplot(data= Data, aes(x=Year))+
+  geom_point(aes(y=Total_Events, color = "Overstromingen"))+
+  geom_line(aes(y=Total_Events, color = "Overstromingen"))+
+  geom_point(aes(y=human_rights, color = "Mensenrechtenindex"))+
+  geom_line(aes(y=human_rights, color = "Mensenrechtenindex"))+
+  facet_wrap(~Country)+
+  scale_color_manual(values =c( "Mensenrechtenindex"= "tomato2", "Overstromingen"="royalblue") )+
+  transition_reveal(Year) +
+  labs(title = "Figuur 1", subtitle="Hoeveelheid overstromingen en mensenrechtenindex per land per jaar",color = "Legenda", y ="Hoeveelheid", x="Jaar", caption = "De mensenrechtenindex is op een schaal van 0-100, waarbij een hoge score 
+       betekend dat de mensenrechten in het land goed worden gewaarborgd")+ 
+  theme(plot.caption = element_text(size=7), plot.caption.position = "plot")
+
+anim_save("Plot-animatie.gif")
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
