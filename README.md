@@ -1,5 +1,8 @@
 # Overstromingen en Mensenrechten: Een Panelanalyse van China, India en Indonesië (2005–2022)
 ## Over dit project
+>[!NOTE]
+>Dit project is tot stand gekomen als onderdeel van de bachelorscriptie voor de opleiding Criminologie.
+
 Deze repository bevat de data, code en resultaten van mijn scriptie. De studie onderzoekt het effect van overstromingen op mensenrechtenschendingen in drie landen over een periode van 18 jaar. Aan de hand van panelregressie is gekeken naar de impact op korte (directe invloed) en middellange termijn (invloed na 1 of 2 jaar). De onderzoeksvraag die centraal staat is:   
 _Welk verband hebben natuurrampen, specifiek overstromingen, op mensenrechtenschendingen op zowel korte als middellange termijn in China, India en Indonesië in de periode 2005–2022?_   
 ![](https://github.com/marleen101/Scriptie/blob/main/Visualisatie/Plot-animatie.gif)
